@@ -100,67 +100,48 @@ ONE_MIN_CONVERSATION_API_URL = "https://api.1min.ai/api/conversations"
 ONE_MIN_CONVERSATION_API_STREAMING_URL = "https://api.1min.ai/api/features?isStreaming=true"
 ONE_MIN_ASSET_URL = "https://api.1min.ai/api/assets"
 
-# Cache for models
-model_cache = {
-    "models": [],
-    "last_updated": 0,
-    "ttl": 3600  # Cache for 1 hour
-}
-
-def fetch_available_models(api_key):
-    """Fetch available models from 1min.ai API."""
-    global model_cache
-    current_time = time.time()
-    if model_cache["models"] and (current_time - model_cache["last_updated"] < model_cache["ttl"]):
-        return model_cache["models"]
-
-    try:
-        headers = {"API-KEY": api_key}
-        response = requests.get(ONE_MIN_API_URL, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        # Adjust based on actual API response structure
-        # Assuming the response is a list of features/models
-        fetched_models = []
-        if isinstance(data, list):
-            for item in data:
-                if "model" in item:
-                    fetched_models.append(item["model"])
-                elif "id" in item:
-                    fetched_models.append(item["id"])
-        
-        if fetched_models:
-            model_cache["models"] = list(set(fetched_models))
-            model_cache["last_updated"] = current_time
-            logger.info(f"Successfully fetched {len(fetched_models)} models from 1min.ai")
-            return model_cache["models"]
-    except Exception as e:
-        logger.error(f"Failed to fetch models from 1min.ai: {e}")
-    
-    return ALL_ONE_MIN_AVAILABLE_MODELS # Fallback to hardcoded list
-
-# Define the models that are available for use (Fallback list)
+# Define the models that are available for use
 ALL_ONE_MIN_AVAILABLE_MODELS = [
-    "gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini", "o3-mini",
+    # OpenAI
+    "gpt-4o", "gpt-4o-mini", "o1", "o1-preview", "o1-mini", "o3-mini",
     "gpt-4.1-nano", "gpt-4.1-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo",
+    
+    # Anthropic
     "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620",
+    "claude-3-5-haiku-20241022", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307",
+    
+    # DeepSeek
     "deepseek-chat", "deepseek-reasoner", "deepseek-v3",
-    "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro",
-    "mistral-large-latest", "mistral-small-latest", "mistral-nemo",
-    "meta/meta-llama-3.1-405b-instruct", "meta/meta-llama-3.1-70b-instruct", "command-r-plus"
+    
+    # Google
+    "gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro",
+    
+    # Mistral
+    "mistral-large-latest", "mistral-small-latest", "mistral-nemo", "open-mistral-7b", "pixtral-12b-2409",
+    
+    # Meta
+    "meta/meta-llama-3.1-405b-instruct", "meta/meta-llama-3.1-70b-instruct", "meta/meta-llama-3.1-8b-instruct",
+    "meta/llama-2-70b-chat",
+
+    # Cohere
+    "command-r-plus", "command-r",
+    
+    # xAI
+    "grok-1", "grok-beta"
 ]
 
 # Define the models that support vision inputs
 vision_supported_models = [
-    "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "claude-3-5-sonnet-20241022", 
-    "gemini-1.5-pro", "gemini-1.5-flash", "pixtral-12b-2409"
+    "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "claude-3-7-sonnet-20250219", 
+    "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620", "gemini-1.5-pro", 
+    "gemini-1.5-flash", "pixtral-12b-2409"
 ]
 
 # Define the models that support image generation
 image_generation_models = [
     "stable-image", "stable-diffusion-xl-1024-v1-0", "stable-diffusion-v1-6",
-    "midjourney", "dall-e-3", "black-forest-labs/flux-schnell", "black-forest-labs/flux-pro"
+    "midjourney", "dall-e-3", "black-forest-labs/flux-schnell", "black-forest-labs/flux-pro",
+    "recraft-v3"
 ]
 
 
@@ -192,18 +173,11 @@ def index():
 @app.route('/v1/models')
 @limiter.limit("500 per minute")
 def models():
-    auth_header = request.headers.get('Authorization')
-    api_key = auth_header.split(" ")[1] if auth_header and auth_header.startswith("Bearer ") else ONE_MIN_API_KEY
-    
-    current_models = ALL_ONE_MIN_AVAILABLE_MODELS
-    if api_key:
-        current_models = fetch_available_models(api_key)
-
     models_data = []
     if not PERMIT_MODELS_FROM_SUBSET_ONLY:
         one_min_models_data = [
             {"id": model_name, "object": "model", "owned_by": "1minai", "created": 1727389042}
-            for model_name in current_models
+            for model_name in ALL_ONE_MIN_AVAILABLE_MODELS
         ]
     else:
         one_min_models_data = [
