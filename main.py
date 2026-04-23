@@ -146,39 +146,86 @@ def fetch_models_from_docs():
 
 # Define the models that are available for use
 ALL_ONE_MIN_AVAILABLE_MODELS = [
-    # OpenAI
-    "gpt-4o", "gpt-4o-mini", "o1", "o1-preview", "o1-mini", "o3-mini",
-    "gpt-4.1-nano", "gpt-4.1-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo",
-    
-    # Anthropic
-    "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620",
-    "claude-3-5-haiku-20241022", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307",
-    
-    # DeepSeek
-    "deepseek-chat", "deepseek-reasoner", "deepseek-v3",
-    
-    # Google
-    "gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro",
-    
-    # Mistral
-    "mistral-large-latest", "mistral-small-latest", "mistral-nemo", "open-mistral-7b", "pixtral-12b-2409",
-    
-    # Meta
-    "meta/meta-llama-3.1-405b-instruct", "meta/meta-llama-3.1-70b-instruct", "meta/meta-llama-3.1-8b-instruct",
-    "meta/llama-2-70b-chat",
-
-    # Cohere
-    "command-r-plus", "command-r",
-    
-    # xAI
-    "grok-1", "grok-beta"
+  "claude-haiku-4-5-20251001",
+  "claude-opus-4-1-20250805",
+  "claude-opus-4-20250514",
+  "claude-opus-4-5-20251101",
+  "claude-opus-4-6",
+  "claude-sonnet-4-20250514",
+  "claude-sonnet-4-5-20250929",
+  "claude-sonnet-4-6",
+  "command-r-08-2024",
+  "deepseek-chat",
+  "deepseek-reasoner",
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite-preview",
+  "gemini-3.1-pro-preview",
+  "gpt-3.5-turbo",
+  "gpt-4-turbo",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "gpt-4o",
+  "gpt-4o-mini",
+  "gpt-5",
+  "gpt-5-chat-latest",
+  "gpt-5-mini",
+  "gpt-5-nano",
+  "gpt-5.1",
+  "gpt-5.1-codex",
+  "gpt-5.1-codex-mini",
+  "gpt-5.2",
+  "gpt-5.2-pro",
+  "gpt-5.4",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "gpt-5.4-pro",
+  "grok-3",
+  "grok-3-mini",
+  "grok-4-0709",
+  "grok-4-fast-non-reasoning",
+  "grok-4-fast-reasoning",
+  "magistral-medium-latest",
+  "magistral-small-latest",
+  "meta/llama-2-70b-chat",
+  "meta/llama-4-maverick-instruct",
+  "meta/llama-4-scout-instruct",
+  "meta/meta-llama-3-70b-instruct",
+  "meta/meta-llama-3.1-405b-instruct",
+  "ministral-14b-latest",
+  "mistral-large-latest",
+  "mistral-medium-latest",
+  "mistral-small-latest",
+  "o3",
+  "o3-deep-research",
+  "o3-mini",
+  "o3-pro",
+  "o4-mini",
+  "o4-mini-deep-research",
+  "open-mistral-nemo",
+  "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b",
+  "qwen-flash",
+  "qwen-max",
+  "qwen-plus",
+  "qwen-vl-max",
+  "qwen-vl-plus",
+  "qwen3-max",
+  "qwen3-vl-flash",
+  "qwen3-vl-plus",
+  "sonar",
+  "sonar-deep-research",
+  "sonar-pro",
+  "sonar-reasoning-pro"
 ]
 
 # Define the models that support vision inputs
 vision_supported_models = [
     "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "claude-3-7-sonnet-20250219", 
     "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20240620", "gemini-1.5-pro", 
-    "gemini-1.5-flash", "pixtral-12b-2409"
+    "gemini-1.5-flash", "pixtral-12b-2409", "qwen3-vl-plus", "qwen3-vl-flash", "qwen-vl-plus", "qwen-vl-max"
 ]
 
 # Define the models that support image generation
@@ -518,45 +565,3 @@ If does not work, try:
 {internal_ip}:5001/v1/chat/completions
 {printedcolors.Color.reset}""")
     serve(app, host='0.0.0.0', port=5001, threads=6) # Thread has a default of 4 if not specified. We use 6 to increase performance and allow multiple requests at once.
-
-al tokens: {str(tokens + prompt_tokens)}")
-        
-    # Final chunk when iteration stops
-    final_chunk = {
-        "id": f"chatcmpl-{uuid.uuid4()}",
-        "object": "chat.completion.chunk",
-        "created": int(time.time()),
-        "model": request_data.get('model', 'mistral-nemo'),
-        "choices": [
-            {
-                "index": 0,
-                "delta": {
-                    "content": ""    
-                },
-                "finish_reason": "stop"
-            }
-        ],
-        "usage": {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": tokens,
-            "total_tokens": tokens + prompt_tokens
-        }
-    }
-    yield f"data: {json.dumps(final_chunk)}\n\n"
-    yield "data: [DONE]\n\n"
-
-if __name__ == '__main__':
-    internal_ip = socket.gethostbyname(socket.gethostname())
-    response = requests.get('https://api.ipify.org')
-    public_ip = response.text
-    logger.info(f"""{printedcolors.Color.fg.lightcyan}  
-Server is ready to serve at:
-Internal IP: {internal_ip}:5001
-Public IP: {public_ip} (only if you've setup port forwarding on your router.)
-Enter this url to OpenAI clients supporting custom endpoint:
-{internal_ip}:5001/v1
-If does not work, try:
-{internal_ip}:5001/v1/chat/completions
-{printedcolors.Color.reset}""")
-    serve(app, host='0.0.0.0', port=5001, threads=6) # Thread has a default of 4 if not specified. We use 6 to increase performance and allow multiple requests at once.
-
