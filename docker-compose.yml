@@ -2,7 +2,6 @@ services:
   # Memcached for storing rate-limits data.
   memcached:
     image: memcached:latest
-    container_name: 1min-relay-memcached
     networks:
       - 1min-relay-network
     restart: unless-stopped
@@ -19,20 +18,13 @@ services:
     depends_on:
       - memcached
     environment:
-      # Optional: Set a global API Key for the relay. 
-      # If set, clients don't need to provide a Bearer token.
-      - ONE_MIN_API_KEY=${ONE_MIN_API_KEY:-YOUR_API_KEY_HERE}
-      # Use comma-separated string for permitted models
-      - SUBSET_OF_ONE_MIN_PERMITTED_MODELS=${SUBSET_MODELS:-mistral-nemo,gpt-4o-mini,deepseek-chat}
-      # Set to "True" to only allow models in the subset list above
-      - PERMIT_MODELS_FROM_SUBSET_ONLY=${SUBSET_ONLY:-False}
+      # Use comma-separated string for ONE_MIN_AVAILABLE_MODELS Default: "mistral-nemo", "gpt-4o", "deepseek-chat"
+      - SUBSET_OF_ONE_MIN_PERMITTED_MODELS=mistral-nemo,gpt-4o-mini,deepseek-chat
+      # Set your boolean as "True" or "False" for PERMIT_MODELS_FROM_SUBSET_ONLY Default: False
+      - PERMIT_MODELS_FROM_SUBSET_ONLY=False
+      # Optional: Set a global API Key for the relay.
+      - ONE_MIN_API_KEY=
     restart: unless-stopped
-    labels:
-      - "net.unraid.docker.managed=console"
-      - "net.unraid.docker.icon=https://raw.githubusercontent.com/google/material-design-icons/master/png/action/settings_input_component/materialicons/48dp/1x/baseline_settings_input_component_black_48dp.png"
-      - "net.unraid.docker.webui=http://[IP]:[PORT:5001]/"
-      - "net.unraid.docker.shell=bash"
 
 networks:
-  1min-relay-network:
-    name: 1min-relay-network
+  1min-relay-network:  # Define the custom network
