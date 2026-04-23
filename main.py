@@ -173,11 +173,13 @@ def index():
 @app.route('/v1/models')
 @limiter.limit("500 per minute")
 def models():
+    current_models = fetch_models_from_docs()
+    
     models_data = []
     if not PERMIT_MODELS_FROM_SUBSET_ONLY:
         one_min_models_data = [
             {"id": model_name, "object": "model", "owned_by": "1minai", "created": 1727389042}
-            for model_name in ALL_ONE_MIN_AVAILABLE_MODELS
+            for model_name in current_models
         ]
     else:
         one_min_models_data = [
@@ -433,6 +435,47 @@ def stream_response(response, request_data, model, prompt_tokens):
     tokens = calculate_token(all_chunks)
     logger.debug(f"Finished processing streaming response. Completion tokens: {str(tokens)}")
     logger.debug(f"Total tokens: {str(tokens + prompt_tokens)}")
+        
+    # Final chunk when iteration stops
+    final_chunk = {
+        "id": f"chatcmpl-{uuid.uuid4()}",
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": request_data.get('model', 'mistral-nemo'),
+        "choices": [
+            {
+                "index": 0,
+                "delta": {
+                    "content": ""    
+                },
+                "finish_reason": "stop"
+            }
+        ],
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": tokens,
+            "total_tokens": tokens + prompt_tokens
+        }
+    }
+    yield f"data: {json.dumps(final_chunk)}\n\n"
+    yield "data: [DONE]\n\n"
+
+if __name__ == '__main__':
+    internal_ip = socket.gethostbyname(socket.gethostname())
+    response = requests.get('https://api.ipify.org')
+    public_ip = response.text
+    logger.info(f"""{printedcolors.Color.fg.lightcyan}  
+Server is ready to serve at:
+Internal IP: {internal_ip}:5001
+Public IP: {public_ip} (only if you've setup port forwarding on your router.)
+Enter this url to OpenAI clients supporting custom endpoint:
+{internal_ip}:5001/v1
+If does not work, try:
+{internal_ip}:5001/v1/chat/completions
+{printedcolors.Color.reset}""")
+    serve(app, host='0.0.0.0', port=5001, threads=6) # Thread has a default of 4 if not specified. We use 6 to increase performance and allow multiple requests at once.
+
+al tokens: {str(tokens + prompt_tokens)}")
         
     # Final chunk when iteration stops
     final_chunk = {

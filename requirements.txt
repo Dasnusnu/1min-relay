@@ -8,3 +8,4 @@ limits[memcached]==5.6.0
 coloredlogs==15.0.1
 printedcolors==1.0.0
 pymemcache==4.0.0
+beautifulsoup4==4.12.3
