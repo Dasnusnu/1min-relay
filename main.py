@@ -19,6 +19,7 @@ from io import BytesIO
 import coloredlogs
 import printedcolors
 import base64
+from bs4 import BeautifulSoup
 
 # Suppress warnings from flask_limiter
 warnings.filterwarnings("ignore", category=UserWarning, module="flask_limiter.extension")
@@ -99,6 +100,49 @@ ONE_MIN_API_URL = "https://api.1min.ai/api/features"
 ONE_MIN_CONVERSATION_API_URL = "https://api.1min.ai/api/conversations"
 ONE_MIN_CONVERSATION_API_STREAMING_URL = "https://api.1min.ai/api/features?isStreaming=true"
 ONE_MIN_ASSET_URL = "https://api.1min.ai/api/assets"
+
+ONE_MIN_DOCS_URL = "https://docs.1min.ai/docs/api/chat-with-ai-api"
+
+# Cache for models
+model_cache = {
+    "models": [],
+    "last_updated": 0,
+    "ttl": 86400  # Cache for 24 hours
+}
+
+def fetch_models_from_docs():
+    """Live pull models from 1minai documentation dropdown."""
+    global model_cache
+    current_time = time.time()
+    
+    if model_cache["models"] and (current_time - model_cache["last_updated"] < model_cache["ttl"]):
+        return model_cache["models"]
+
+    try:
+        logger.info("Fetching latest models from 1minai documentation...")
+        response = requests.get(ONE_MIN_DOCS_URL, timeout=15)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # The user provided the exact element style/type
+        options = soup.find_all('option')
+        
+        scraped_models = []
+        for option in options:
+            model_id = option.get('value')
+            if model_id:
+                scraped_models.append(model_id)
+        
+        if scraped_models:
+            model_cache["models"] = list(dict.fromkeys(scraped_models)) # Preserve order
+            model_cache["last_updated"] = current_time
+            logger.info(f"Successfully scraped {len(model_cache['models'])} models from docs.")
+            return model_cache["models"]
+            
+    except Exception as e:
+        logger.error(f"Failed to scrape models from docs: {e}")
+    
+    return ALL_ONE_MIN_AVAILABLE_MODELS # Fallback to hardcoded list
 
 # Define the models that are available for use
 ALL_ONE_MIN_AVAILABLE_MODELS = [
